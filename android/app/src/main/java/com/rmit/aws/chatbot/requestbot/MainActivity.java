@@ -1,7 +1,9 @@
 package com.rmit.aws.chatbot.requestbot;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.support.constraint.ConstraintLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -23,6 +25,7 @@ import com.amazonaws.mobileconnectors.lex.interactionkit.continuations.LexServic
 import com.amazonaws.mobileconnectors.lex.interactionkit.listeners.InteractionListener;
 import com.amazonaws.mobileconnectors.lex.interactionkit.ui.InteractiveVoiceView;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.lexrts.model.ResponseCard;
 
 public class MainActivity extends AppCompatActivity {
     private static int PERMISSION_REQ = 1;
@@ -33,6 +36,8 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout chatBox;
     private EditText inputText;
     private Button sendButton;
+    private Button clearhisoryButton;
+    private Button connectptvButton;
 
     private int userChatLayout = R.layout.user_chat_box;
     private int lexChatLayout = R.layout.lex_chat_box;
@@ -52,11 +57,30 @@ public class MainActivity extends AppCompatActivity {
         chatBox = (LinearLayout) findViewById(R.id.chat_box);
         inputText = (EditText) findViewById(R.id.input_text);
         sendButton = (Button) findViewById(R.id.send_button);
+        clearhisoryButton=(Button) findViewById(R.id.clearhistory);
+        connectptvButton=(Button) findViewById(R.id.connectptv);
+
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 sendMessage(inputText.getText().toString());
                 inputText.setText("");
+            }
+        });
+        clearhisoryButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                chatBox.removeAllViews();
+            }
+        });
+        connectptvButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent();
+                intent.setAction("android.intent.action.VIEW");
+                Uri content_url = Uri.parse("https://www.ptv.vic.gov.au/");
+                intent.setData(content_url);
+                startActivity(intent);
             }
         });
 
@@ -104,6 +128,9 @@ public class MainActivity extends AppCompatActivity {
         ConstraintLayout userMessageLayout = (ConstraintLayout) getLayoutInflater().inflate(R.layout.user_chat_box, null);
         TextView messageText = (TextView) userMessageLayout.findViewById(R.id.messege_text);
         messageText.setText(message);
+        if(chatBox.getChildCount()>6){
+            chatBox.removeViewAt(0);
+        }
         chatBox.addView(userMessageLayout);
     }
 
@@ -111,10 +138,23 @@ public class MainActivity extends AppCompatActivity {
         ConstraintLayout lexMessageLayout = (ConstraintLayout) getLayoutInflater().inflate(R.layout.lex_chat_box, null);
         TextView messageText = (TextView) lexMessageLayout.findViewById(R.id.messege_text);
         messageText.setText(response.getTextResponse());
+        if(chatBox.getChildCount()>6){
+            chatBox.removeViewAt(0);
+        }
+        chatBox.addView(lexMessageLayout);
+    }
+    private void receiveMessage(ResponseCard responseCard) {
+        ConstraintLayout lexMessageLayout = (ConstraintLayout) getLayoutInflater().inflate(R.layout.lex_chat_box, null);
+        TextView messageText = (TextView) lexMessageLayout.findViewById(R.id.messege_text);
+        messageText.setText(responseCard.getGenericAttachments().get(0).getImageUrl());
+        if(chatBox.getChildCount()>6){
+            chatBox.removeViewAt(0);
+        }
         chatBox.addView(lexMessageLayout);
     }
 
     private class LexListener implements InteractionListener {
+
 
         @Override
         public void onReadyForFulfillment(Response response) {
