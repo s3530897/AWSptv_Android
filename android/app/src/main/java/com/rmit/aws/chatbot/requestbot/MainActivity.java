@@ -146,6 +146,7 @@ public class MainActivity extends AppCompatActivity {
         }
         ConstraintLayout userMessageLayout = (ConstraintLayout) getLayoutInflater().inflate(R.layout.user_chat_box, null);
         TextView messageText = (TextView) userMessageLayout.findViewById(R.id.messege_text);
+        messageText.setBackgroundResource(R.drawable.text_view_request);
         messageText.setText(message);
         chatBox.addView(userMessageLayout,0);
 
@@ -183,6 +184,7 @@ public class MainActivity extends AppCompatActivity {
         }else {
             ConstraintLayout lexMessageLayout = (ConstraintLayout) getLayoutInflater().inflate(R.layout.lex_chat_box, null);
             TextView messageTextre = (TextView) lexMessageLayout.findViewById(R.id.messege_text);
+            messageTextre.setBackgroundResource(R.drawable.text_view_border);
             messageTextre.setText(resultText);
             chatBox.addView(lexMessageLayout,0);
         }
@@ -198,6 +200,7 @@ public class MainActivity extends AppCompatActivity {
     private void receiveMessage(String response) {
         ConstraintLayout lexMessageLayout = (ConstraintLayout) getLayoutInflater().inflate(R.layout.lex_chat_box, null);
         TextView messageText = (TextView) lexMessageLayout.findViewById(R.id.messege_text);
+        messageText.setBackgroundResource(R.drawable.text_view_border);
         messageText.setText(response);
         chatBox.addView(lexMessageLayout,0);
     }

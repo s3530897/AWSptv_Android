@@ -19,7 +19,7 @@
         android:id="@+id/messege_text"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="#f1f0f0"
+        android:background="@drawable/text_view_border"
         android:maxEms="18"
         android:padding="8dp"
         android:text="placeholder\ntext"
