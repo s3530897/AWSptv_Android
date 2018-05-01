@@ -95,7 +95,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         System.out.println("测试测asdadads");
         initPermission();
-        System.out.println("测试测asdadads");
         initLex();
         if(isOpenLocService(this)){;}else {
             new AlertDialog.Builder(this)
@@ -206,6 +205,7 @@ public class MainActivity extends AppCompatActivity {
         transfermessage = message;
 
         if(location!=null){
+            System.out.println(location.getLatitude()+"啊啊啊啊啊");
             Map sessionAttributes=new HashMap();
             sessionAttributes.put("latitude",location.getLatitude()+"");
             sessionAttributes.put("longitude",location.getLongitude()+"");
