@@ -1,14 +1,19 @@
 package com.rmit.aws.chatbot.requestbot;
 
 import android.Manifest;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Parcelable;
 import android.os.StrictMode;
 import android.support.constraint.ConstraintLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.SpannableString;
@@ -36,7 +41,9 @@ import com.amazonaws.services.lexrts.model.PostTextRequest;
 import com.amazonaws.services.lexrts.model.PostTextResult;
 import com.amazonaws.services.lexrts.model.ResponseCard;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -86,10 +93,28 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        System.out.println("测试测asdadads");
         initPermission();
-
+        System.out.println("测试测asdadads");
         initLex();
+        if(isOpenLocService(this)){;}else {
+            new AlertDialog.Builder(this)
+                    .setTitle("Undetected GPS service")
+                    .setMessage("you should open GPS service")
+                    .setNegativeButton("sure", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            gotoLocServiceSettings(MainActivity.this);
+                        }
+                    })
+                    .setPositiveButton("Of course", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            gotoLocServiceSettings(MainActivity.this);
+                        }
+                    })
+                    .create().show();
+        }
 
         chatBox = (LinearLayout) findViewById(R.id.chat_box);
         inputText = (EditText) findViewById(R.id.input_text);
@@ -113,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
         receiveMessage("Welcome to use PTV BOT\n" +
                 "We can provide you with all the information you need.\n" +
                 "You can enter all your questions in the input box");
-
+        System.out.println("测试测asdadads");
     }
 
     private void initPermission() {
@@ -122,6 +147,12 @@ public class MainActivity extends AppCompatActivity {
         }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_DENIED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_NETWORK_STATE} , PERMISSION_REQ);
+        }
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_REQ);
+        }
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, PERMISSION_REQ);
         }
     }
 
@@ -162,6 +193,7 @@ public class MainActivity extends AppCompatActivity {
         ConstraintLayout userMessageLayout = (ConstraintLayout) getLayoutInflater().inflate(R.layout.user_chat_box, null);
         TextView messageText = (TextView) userMessageLayout.findViewById(R.id.messege_text);
         messageText.setBackgroundResource(R.drawable.text_view_request);
+        Location location=getLocation();
         messageText.setText(message);
         chatBox.addView(userMessageLayout);
         scrollView.post(new Runnable() {
@@ -171,10 +203,16 @@ public class MainActivity extends AppCompatActivity {
                 // scrollView.scrollTo(0, scrollView.getBottom()); // This might also work for smooth scrolling
             }
         });
-        transfermessage=message;
+        transfermessage = message;
+
+        if(location!=null){
+            Map sessionAttributes=new HashMap();
+            sessionAttributes.put("latitude",location.getLatitude()+"");
+            sessionAttributes.put("longitude",location.getLongitude()+"");
+            postTextRequest.setSessionAttributes(sessionAttributes);}
 
     }
-    private void receiveMessage(Response response) {
+    private void receiveMessage() {
         postTextRequest.setInputText(transfermessage);
         // PostTextResult result=clientlr.postText(postTextRequest);
         if (android.os.Build.VERSION.SDK_INT > 9) {
@@ -211,7 +249,25 @@ public class MainActivity extends AppCompatActivity {
                 linearLayout.addView(button);
             }
             chatBox.addView(ResponseCardLayout);
-        }else {
+        }else if (resultText.equals("Sorry, I can't help you with that. Would you like to be transfered to a customer service rep?")) {
+            ConstraintLayout ResponseCardLayout = (ConstraintLayout) getLayoutInflater().inflate(R.layout.lexcard_chat_box, null);
+            TextView responsecardText = (TextView) ResponseCardLayout.findViewById(R.id.card_messege_text);
+            responsecardText.setText(resultText);
+            LinearLayout linearLayout = (LinearLayout) ResponseCardLayout.findViewById(R.id.buttonlayout);
+
+            Button button = new Button(this);
+            button.setText("Call PTV");
+            button.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + "1800800007"));
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                }
+            });
+            linearLayout.addView(button);
+            chatBox.addView(ResponseCardLayout);
+        } else  {
             ConstraintLayout lexMessageLayout = (ConstraintLayout) getLayoutInflater().inflate(R.layout.lex_chat_box, null);
             TextView messageTextre = (TextView) lexMessageLayout.findViewById(R.id.messege_text);
             messageTextre.setBackgroundResource(R.drawable.text_view_border);
@@ -271,20 +327,68 @@ public class MainActivity extends AppCompatActivity {
             continuation = null;
             inConversation = false;
             response.getAudioResponse();
-            receiveMessage(response);
+            receiveMessage();
         }
 
         @Override
         public void promptUserToRespond(Response response, LexServiceContinuation continuation) {
             MainActivity.this.continuation = continuation;
-            receiveMessage(response);
+            receiveMessage();
         }
 
         @Override
         public void onInteractionError(Response response, Exception e) {
             continuation = null;
             inConversation = false;
-            receiveMessage(response);
+            receiveMessage();
+        }
+    }
+    private Location getLocation() {
+
+        String provider = LocationManager.NETWORK_PROVIDER;
+        String serviceString = Context.LOCATION_SERVICE;
+        LocationManager locationManager = (LocationManager) getSystemService(serviceString);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return null;
+        }
+        Location location = locationManager.getLastKnownLocation(provider);
+        if(location==null){
+            provider = LocationManager.GPS_PROVIDER;
+            serviceString = Context.LOCATION_SERVICE;
+            locationManager = (LocationManager) getSystemService(serviceString);
+            location = locationManager.getLastKnownLocation(provider);
+        }
+        //System.out.println(location.getLatitude()+","+location.getLongitude());
+        return location;
+    }
+
+
+    public boolean isOpenLocService(Context context) {
+        boolean isGps = false; //判断GPS定位是否启动
+        boolean isNetwork = false; //判断网络定位是否启动
+            LocationManager locationManager
+                    = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
+            if (locationManager != null) {
+                //通过GPS卫星定位，定位级别可以精确到街（通过24颗卫星定位，在室外和空旷的地方定位准确、速度快）
+                isGps = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+                //通过WLAN或移动网络(3G/2G)确定的位置（也称作AGPS，辅助GPS定位。主要用于在室内或遮盖物（建筑群或茂密的深林等）密集的地方定位）
+                isNetwork = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+            }
+            if (isGps || isNetwork) {
+                return true;
+            }
+        return false;
+    }
+    public void gotoLocServiceSettings(Context context) {
+        final Intent intent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(intent);
+    }
+    public void locationserveron(Context context){
+        if(isOpenLocService(context)){
+            ;
+        }else{
+            gotoLocServiceSettings(context);
         }
     }
 }
